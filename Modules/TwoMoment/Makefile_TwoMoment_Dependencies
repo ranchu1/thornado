@@ -1,5 +1,10 @@
+TwoMoment_NNClosureModule.o: \
+  KindModule.o \
+  TwoMoment_NNClosureModule.F90
+
 TwoMoment_ClosureModule.o: \
   KindModule.o \
+  TwoMoment_NNClosureModule.o \
   TwoMoment_ClosureModule.F90
 
 TwoMoment_UtilitiesModule.o: \

@@ -5,6 +5,10 @@ MODULE TwoMoment_ClosureModule
     Zero, One, Two, Three, Four, &
     Fifth, Third
 
+#ifdef MOMENT_CLOSURE_NN_BRONSON
+  USE TwoMoment_NNClosureModule
+#endif
+
   IMPLICIT NONE
   PRIVATE
 
@@ -138,6 +142,34 @@ CONTAINS
        WRITE(*,'(A6,A)') &
          '', 'Two-Moment Closure: Levermore'
       
+     END IF
+
+#elif MOMENT_CLOSURE_MYCB
+
+     ! --- R.C. Fited Closure ---
+     IF( Verbose )THEN
+
+       WRITE(*,*)
+       WRITE(*,'(A6,A)') &
+         '', ' R. Chu fit closure'
+
+     END IF
+
+
+#elif MOMENT_CLOSURE_NN_BRONSON
+
+     ! --- Neural Network Closure Trained with Homo. Bronson dataset ---
+
+     IF( Verbose )THEN
+
+       WRITE(*,*)
+       WRITE(*,'(A6,A)') &
+         '', 'Two-Moment Closure: Neural Network (Bronson)'
+       WRITE(*,'(A6,A)') '','Loading Neural Neterwork ...'
+
+       CALL InitializeNNClosure &
+         ( 'Bronson_5inputs_20.h5' )
+
      END IF
 
 #else
@@ -306,6 +338,12 @@ CONTAINS
     REAL(DP), INTENT(in) :: D, FF
     REAL(DP) :: EddingtonFactor
 
+    REAL(DP) :: Ratio, Bryup, Brydown
+
+#ifdef MOMENT_CLOSURE_NN_BRONSON
+    REAL(DP) :: input(input_n)
+#endif
+
 #ifdef MOMENT_CLOSURE_MINERBO
 
     ! --- Maximum Entropy (ME) Minerbo Closure ---
@@ -344,6 +382,36 @@ CONTAINS
     EddingtonFactor &
       = Third * ( 5.0_dp - Two * SQRT( Four - Three * FF * FF ) )
 
+#elif MOMENT_CLOSURE_MYCB
+
+    ! --- R.C. Fit Closure ---
+    !! CB Ratio
+    !Ratio = Third + Two * Third * ( One - D ) * ( One - Two * D ) &
+    !           * ClosurePolynomial_ME_CB( FF / MAX( One - D, SqrtTiny ) )
+    ! Max Packing ( Minimum )
+    Brydown = Third * ( One + 4.0_DP * FF * FF - Two * FF )
+    ! Fit ( Maximum )
+    Bryup = Third + FF / 15.0_DP + 3.0_DP * FF * FF / 16.0_DP &
+               + Two * FF * FF * FF / 15.0_DP
+
+    EddingtonFactor &
+      = Brydown
+
+#elif MOMENT_CLOSURE_NN_BRONSON
+
+    input(1) = D
+    input(2) = FF
+    ! CB closure
+    input(3) = Third + Two * Third * ( One - D ) * ( One - Two * D ) &
+               * ClosurePolynomial_ME_CB( FF / MAX( One - D, SqrtTiny ) )
+    ! Max Packing ( Minimum )
+    input(4) = Third * ( One + 4.0_DP * FF * FF - Two * FF )
+    ! Fit ( Maximum )
+    input(5) = Third + FF / 15.0_DP + 3.0_DP * FF * FF / 16.0_DP &
+               + Two * FF * FF * FF / 15.0_DP
+
+    call nnclosure(input, EddingtonFactor)
+
 #endif
 
     RETURN
@@ -359,6 +427,12 @@ CONTAINS
 
     REAL(DP), INTENT(in) :: D(:), FF(:)
     REAL(DP) :: EddingtonFactor(SIZE(D))
+
+    INTEGER  :: i
+
+#ifdef MOMENT_CLOSURE_NN_BRONSON
+    REAL(DP) :: input(input_n)
+#endif
 
 #ifdef MOMENT_CLOSURE_MINERBO
 
@@ -397,6 +471,18 @@ CONTAINS
 
     EddingtonFactor &
       = Third * ( 5.0_dp - Two * SQRT( Four - Three * FF * FF ) )
+
+#elif MOMENT_CLOSURE_NN_BRONSON
+
+    STOP 'Not Finished MOMENT_CLOSURE_NN_BRONSON in EddingtonFactor_Vector'
+    DO i = 1, size(D)
+      input(1) = One
+      input(2) = D(i)
+      input(3) = FF(i)
+      input(4) = FF(i)*FF(i)
+      input(5) = One / ( One - D(i) ) !tan( Pi*0.45*( One - D/(One-abs(FF))))
+      call nnclosure(input, EddingtonFactor(i))
+    END DO
 
 #endif
 
