@@ -2048,6 +2048,14 @@ CONTAINS
       dh3dX1(nDOFX  ,    iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),iZ_B0(2)  :iZ_E0(2)      ), &
       dh3dX2(nDOFX  ,    iZ_B0(2):iZ_E0(2),iZ_B0(4):iZ_E0(4),iZ_B0(3)  :iZ_E0(3)      )
 
+    REAL(DP)   :: &
+      uD (1:nDOF ,iZ_B1(1):iZ_E1(1),iZ_B1(2):iZ_E1(2), &
+                 iZ_B1(3):iZ_E1(3),iZ_B1(4):iZ_E1(4),1:nSpecies), &
+      uFF (1:nDOF ,iZ_B1(1):iZ_E1(1),iZ_B1(2):iZ_E1(2), &
+                 iZ_B1(3):iZ_E1(3),iZ_B1(4):iZ_E1(4),1:nSpecies), &
+      uEF (1:nDOF ,iZ_B1(1):iZ_E1(1),iZ_B1(2):iZ_E1(2), &
+                 iZ_B1(3):iZ_E1(3),iZ_B1(4):iZ_E1(4),1:nSpecies)
+
     IF( TRIM( CoordinateSystem ) == 'CARTESIAN' ) RETURN
 
     nZ = iZ_E0 - iZ_B0 + 1
@@ -2418,6 +2426,38 @@ CONTAINS
             DO iZ1 = iZ_B0(1), iZ_E0(1)
               DO iNodeZ = 1, nDOF
 
+                G11   = G(iNodeZ,iGF_Gm_dd_11,iZ2,iZ3,iZ4)
+                G22   = G(iNodeZ,iGF_Gm_dd_22,iZ2,iZ3,iZ4)
+                G33   = G(iNodeZ,iGF_Gm_dd_33,iZ2,iZ3,iZ4)
+
+                PR_D  = U(iNodeZ,iZ1,iZ2,iZ3,iZ4,iCR_N ,iS)
+                PR_I1 = U(iNodeZ,iZ1,iZ2,iZ3,iZ4,iCR_G1,iS) / G11
+                PR_I2 = U(iNodeZ,iZ1,iZ2,iZ3,iZ4,iCR_G2,iS) / G22
+                PR_I3 = U(iNodeZ,iZ1,iZ2,iZ3,iZ4,iCR_G3,iS) / G33
+
+                uD(iNodeZ,iZ1,iZ2,iZ3,iZ4,iS) = PR_D
+                uFF(iNodeZ,iZ1,iZ2,iZ3,iZ4,iS) &
+                  = FluxFactor &
+                      ( PR_D, PR_I1, PR_I2, PR_I3, G11, G22, G33 )
+              END DO
+            END DO
+            DO iNodeZ = 1, nDOF
+              uEF(iNodeZ,iZ_B0(1):iZ_E0(1),iZ2,iZ3,iZ4,iS) &
+                = EddingtonFactor( uD(iNodeZ,iZ_B0(1):iZ_E0(1),iZ2,iZ3,iZ4,iS), &
+                                   uFF(iNodeZ,iZ_B0(1):iZ_E0(1),iZ2,iZ3,iZ4,iS) )
+            END DO
+          END DO
+        END DO
+      END DO
+    END DO
+
+    DO iS  = 1, nSpecies
+      DO iZ4 = iZ_B0(4), iZ_E0(4)
+        DO iZ3 = iZ_B0(3), iZ_E0(3)
+          DO iZ2 = iZ_B0(2), iZ_E0(2)
+            DO iZ1 = iZ_B0(1), iZ_E0(1)
+              DO iNodeZ = 1, nDOF
+
                 iNodeX = MOD( (iNodeZ-1) / nNodesE, nDOFX   ) + 1
 
                 h2    = G(iNodeZ,iGF_h_2,iZ2,iZ3,iZ4)
@@ -2432,17 +2472,12 @@ CONTAINS
                 PR_I2 = U(iNodeZ,iZ1,iZ2,iZ3,iZ4,iCR_G2,iS) / G22
                 PR_I3 = U(iNodeZ,iZ1,iZ2,iZ3,iZ4,iCR_G3,iS) / G33
 
-                FF &
-                  = FluxFactor &
-                      ( PR_D, PR_I1, PR_I2, PR_I3, G11, G22, G33 )
-
-                EF &
-                  = EddingtonFactor &
-                      ( PR_D, FF )
-
                 Stress(1:3) &
                   = StressTensor_Diagonal &
-                      ( PR_D, PR_I1, PR_I2, PR_I3, FF, EF, G11, G22, G33 )
+                      ( PR_D, PR_I1, PR_I2, PR_I3, &
+                        uFF(iNodeZ,iZ1,iZ2,iZ3,iZ4,iS), &
+                        uEF(iNodeZ,iZ1,iZ2,iZ3,iZ4,iS), &
+                        G11, G22, G33 )
 
                 dU_G1 =   dh2dX1(iNodeX,iZ3,iZ4,iZ2) * Stress(2) / h2 &
                         + dh3dX1(iNodeX,iZ3,iZ4,iZ2) * Stress(3) / h3
