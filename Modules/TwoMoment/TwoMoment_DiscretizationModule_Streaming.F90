@@ -279,14 +279,23 @@ CONTAINS
     REAL(DP), INTENT(in)    :: &
       GX(1:nDOFX,iZ_B1(2):iZ_E1(2),iZ_B1(3):iZ_E1(3),iZ_B1(4):iZ_E1(4),1:nGF)
     REAL(DP), INTENT(in)    :: &
-      U (1:nDOF ,iZ_B1(1):iZ_E1(1),iZ_B1(2):iZ_E1(2),iZ_B1(3):iZ_E1(3),iZ_B1(4):iZ_E1(4),1:nCR,1:nSpecies)
+      U (1:nDOF, &
+         iZ_B1(1):iZ_E1(1), &
+         iZ_B1(2):iZ_E1(2), &
+         iZ_B1(3):iZ_E1(3), &
+         iZ_B1(4):iZ_E1(4), &
+         1:nCR,1:nSpecies)
     REAL(DP), INTENT(inout) :: &
-      dU(1:nDOF ,iZ_B1(1):iZ_E1(1),iZ_B1(2):iZ_E1(2),iZ_B1(3):iZ_E1(3),iZ_B1(4):iZ_E1(4),1:nCR,1:nSpecies)
+      dU(1:nDOF, &
+         iZ_B1(1):iZ_E1(1), &
+         iZ_B1(2):iZ_E1(2), &
+         iZ_B1(3):iZ_E1(3), &
+         iZ_B1(4):iZ_E1(4), &
+         1:nCR,1:nSpecies)
 
     INTEGER  :: nZ(4), nZ_X1(4), nK, nF, nF_GF
     INTEGER  :: iNode, iZ1, iZ2, iZ3, iZ4, iCR, iS, iGF
     INTEGER  :: iNodeX, iNodeE, iNodeZ
-    REAL(DP) :: FF, EF, FF_L, EF_L, FF_R, EF_R
     REAL(DP) :: alpha
     REAL(DP) :: Tau
     REAL(DP) :: Tau_X1
@@ -298,13 +307,26 @@ CONTAINS
     REAL(DP), DIMENSION(nCR) :: Flux_X1_R
     REAL(DP), DIMENSION(nCR) :: Flux_X1_K
 
+    REAL(DP), DIMENSION(iZ_B0(1):iZ_E0(1)) :: FF, EF, FF_L, EF_L, FF_R, EF_R, D_R, D_L, D_K
+
     REAL(DP) :: GX_K         (nDOFX       ,iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),iZ_B0(2)-1:iZ_E0(2)+1,nGF)
     REAL(DP) :: GX_F         (nDOFX_X1    ,iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),iZ_B0(2)  :iZ_E0(2)+1,nGF)
     REAL(DP) :: G_K          (nDOF    ,nGF,iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),iZ_B0(2)  :iZ_E0(2)  )
     REAL(DP) :: G_F          (nDOF_X1 ,nGF,iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),iZ_B0(2)  :iZ_E0(2)+1)
 
+    REAL(DP) :: uD           (nDOF    ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)-1:iZ_E0(2)+1)
+    REAL(DP) :: uFF          (nDOF    ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)-1:iZ_E0(2)+1)
+    REAL(DP) :: uEF          (nDOF    ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)-1:iZ_E0(2)+1)
     REAL(DP) :: uCR_K        (nDOF    ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nCR,nSpecies,iZ_B0(2)-1:iZ_E0(2)+1)
+
+    REAL(DP) :: uD_L         (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
+    REAL(DP) :: uFF_L        (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
+    REAL(DP) :: uEF_L        (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
     REAL(DP) :: uCR_L        (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nCR,nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
+
+    REAL(DP) :: uD_R         (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
+    REAL(DP) :: uFF_R        (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
+    REAL(DP) :: uEF_R        (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
     REAL(DP) :: uCR_R        (nDOF_X1 ,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nCR,nSpecies,iZ_B0(2)  :iZ_E0(2)+1)
 
     REAL(DP) :: dU_X1        (nDOF    ,nCR,iZ_B0(1):iZ_E0(1),iZ_B0(3):iZ_E0(3),iZ_B0(4):iZ_E0(4),nSpecies,iZ_B0(2)  :iZ_E0(2)  )
@@ -555,18 +577,67 @@ CONTAINS
                 uPR_L(iPR_I2) = uCR_L(iNode,iZ1,iZ3,iZ4,iCR_G2,iS,iZ2) / G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2)
                 uPR_L(iPR_I3) = uCR_L(iNode,iZ1,iZ3,iZ4,iCR_G3,iS,iZ2) / G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2)
 
-                FF_L = FluxFactor &
+                uD_L(iNode,iZ1,iZ3,iZ4,iS,iZ2)  = uPR_L(iPR_D )
+
+                uFF_L(iNode,iZ1,iZ3,iZ4,iS,iZ2) = FluxFactor &
                        ( uPR_L(iPR_D ), uPR_L(iPR_I1), &
                          uPR_L(iPR_I2), uPR_L(iPR_I3), &
                          G_F(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2), &
                          G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2), &
                          G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2) )
-                EF_L = EddingtonFactor( uPR_L(iPR_D), FF_L )
+
+                ! --- Right State Primitive, etc. ---
+
+                uPR_R(iPR_D ) = uCR_R(iNode,iZ1,iZ3,iZ4,iCR_N ,iS,iZ2)
+                uPR_R(iPR_I1) = uCR_R(iNode,iZ1,iZ3,iZ4,iCR_G1,iS,iZ2) / G_F(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2)
+                uPR_R(iPR_I2) = uCR_R(iNode,iZ1,iZ3,iZ4,iCR_G2,iS,iZ2) / G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2)
+                uPR_R(iPR_I3) = uCR_R(iNode,iZ1,iZ3,iZ4,iCR_G3,iS,iZ2) / G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2)
+
+                uD_R(iNode,iZ1,iZ3,iZ4,iS,iZ2)  = uPR_R(iPR_D )
+
+                uFF_R(iNode,iZ1,iZ3,iZ4,iS,iZ2) = FluxFactor &
+                       ( uPR_R(iPR_D ), uPR_R(iPR_I1), &
+                         uPR_R(iPR_I2), uPR_R(iPR_I3), &
+                         G_F(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2), &
+                         G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2), &
+                         G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2) )
+
+              END DO
+            END DO
+
+            DO iNode = 1, nDOF
+              uEF_L(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2) = &
+                EddingtonFactor( uD_L(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2), &
+                                 uFF_L(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2) )
+
+              uEF_R(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2) = &
+                EddingtonFactor( uD_R(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2), &
+                                 uFF_R(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2) )
+            END DO
+          END DO
+        END DO
+      END DO
+    END DO
+
+    DO iZ2 = iZ_B0(2), iZ_E0(2) + 1
+      DO iS = 1, nSpecies
+        DO iZ4 = iZ_B0(4), iZ_E0(4)
+          DO iZ3 = iZ_B0(3), iZ_E0(3)
+            DO iZ1 = iZ_B0(1), iZ_E0(1)
+              DO iNode = 1, nDOF_X1
+
+                ! --- Left State Primitive, etc. ---
+
+                uPR_L(iPR_D ) = uCR_L(iNode,iZ1,iZ3,iZ4,iCR_N ,iS,iZ2)
+                uPR_L(iPR_I1) = uCR_L(iNode,iZ1,iZ3,iZ4,iCR_G1,iS,iZ2) / G_F(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2)
+                uPR_L(iPR_I2) = uCR_L(iNode,iZ1,iZ3,iZ4,iCR_G2,iS,iZ2) / G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2)
+                uPR_L(iPR_I3) = uCR_L(iNode,iZ1,iZ3,iZ4,iCR_G3,iS,iZ2) / G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2)
+
                 Flux_X1_L(1:nCR) &
                   = Flux_X1 &
                       ( uPR_L(iPR_D ), uPR_L(iPR_I1), &
                         uPR_L(iPR_I2), uPR_L(iPR_I3), &
-                        FF_L, EF_L, &
+                        uFF_L(iNode,iZ1,iZ3,iZ4,iS,iZ2), uEF_L(iNode,iZ1,iZ3,iZ4,iS,iZ2), &
                         G_F(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2), &
                         G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2), &
                         G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2) )
@@ -578,18 +649,11 @@ CONTAINS
                 uPR_R(iPR_I2) = uCR_R(iNode,iZ1,iZ3,iZ4,iCR_G2,iS,iZ2) / G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2)
                 uPR_R(iPR_I3) = uCR_R(iNode,iZ1,iZ3,iZ4,iCR_G3,iS,iZ2) / G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2)
 
-                FF_R = FluxFactor &
-                       ( uPR_R(iPR_D ), uPR_R(iPR_I1), &
-                         uPR_R(iPR_I2), uPR_R(iPR_I3), &
-                         G_F(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2), &
-                         G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2), &
-                         G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2) )
-                EF_R = EddingtonFactor( uPR_R(iPR_D), FF_R )
                 Flux_X1_R(1:nCR) &
                   = Flux_X1 &
                       ( uPR_R(iPR_D ), uPR_R(iPR_I1), &
                         uPR_R(iPR_I2), uPR_R(iPR_I3), &
-                        FF_R, EF_R, &
+                        uFF_R(iNode,iZ1,iZ3,iZ4,iS,iZ2), uEF_R(iNode,iZ1,iZ3,iZ4,iS,iZ2), &
                         G_F(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2), &
                         G_F(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2), &
                         G_F(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2) )
@@ -706,20 +770,45 @@ CONTAINS
                 uPR_K(iPR_I2) = uCR_K(iNode,iZ1,iZ3,iZ4,iCR_G2,iS,iZ2) / G_K(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2)
                 uPR_K(iPR_I3) = uCR_K(iNode,iZ1,iZ3,iZ4,iCR_G3,iS,iZ2) / G_K(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2)
 
-                FF = FluxFactor &
+                uD(iNode,iZ1,iZ3,iZ4,iS,iZ2)  = uPR_K(iPR_D)
+
+                uFF(iNode,iZ1,iZ3,iZ4,iS,iZ2) = FluxFactor &
                        ( uPR_K(iPR_D ), uPR_K(iPR_I1), &
                          uPR_K(iPR_I2), uPR_K(iPR_I3), &
                          G_K(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2), &
                          G_K(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2), &
                          G_K(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2) )
 
-                EF = EddingtonFactor( uPR_K(iPR_D), FF )
+              END DO
+            END DO
+
+            DO iNode = 1, nDOF
+              uEF(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2) = &
+                EddingtonFactor( uD(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2), &
+                                 uFF(iNode,iZ_B0(1):iZ_E0(1),iZ3,iZ4,iS,iZ2) )
+            END DO
+          END DO
+        END DO
+      END DO
+    END DO
+
+    DO iZ2 = iZ_B0(2), iZ_E0(2)
+      DO iS = 1, nSpecies
+        DO iZ4 = iZ_B0(4), iZ_E0(4)
+          DO iZ3 = iZ_B0(3), iZ_E0(3)
+            DO iZ1 = iZ_B0(1), iZ_E0(1)
+              DO iNode = 1, nDOF
+
+                uPR_K(iPR_D ) = uCR_K(iNode,iZ1,iZ3,iZ4,iCR_N ,iS,iZ2)
+                uPR_K(iPR_I1) = uCR_K(iNode,iZ1,iZ3,iZ4,iCR_G1,iS,iZ2) / G_K(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2)
+                uPR_K(iPR_I2) = uCR_K(iNode,iZ1,iZ3,iZ4,iCR_G2,iS,iZ2) / G_K(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2)
+                uPR_K(iPR_I3) = uCR_K(iNode,iZ1,iZ3,iZ4,iCR_G3,iS,iZ2) / G_K(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2)
 
                 Flux_X1_K(1:nCR) &
                   = Flux_X1 &
                       ( uPR_K(iPR_D ), uPR_K(iPR_I1), &
                         uPR_K(iPR_I2), uPR_K(iPR_I3), &
-                        FF, EF, &
+                        uFF(iNode,iZ1,iZ3,iZ4,iS,iZ2), uEF(iNode,iZ1,iZ3,iZ4,iS,iZ2), &
                         G_K(iNode,iGF_Gm_dd_11,iZ3,iZ4,iZ2), &
                         G_K(iNode,iGF_Gm_dd_22,iZ3,iZ4,iZ2), &
                         G_K(iNode,iGF_Gm_dd_33,iZ3,iZ4,iZ2) )
