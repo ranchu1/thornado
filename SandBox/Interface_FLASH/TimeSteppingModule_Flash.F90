@@ -34,9 +34,9 @@ MODULE TimeSteppingModule_Flash
     ComputeIncrement_TwoMoment_Implicit
   USE TwoMoment_PositivityLimiterModule_OrderV, ONLY: &
     ApplyPositivityLimiter_TwoMoment
+#endif
   USE TwoMoment_SlopeLimiterModule_OrderV, ONLY : &
     ApplySlopeLimiter_TwoMoment
-#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -261,15 +261,15 @@ CONTAINS
 
       ! --- Apply Limiter ---
 
+      CALL ApplySlopeLimiter_TwoMoment &
+             ( iZ_B0_SW_P, iZ_E0_SW_P, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
+
 #ifdef TWOMOMENT_ORDER_1
 
       CALL ApplyPositivityLimiter_TwoMoment &
              ( iZ_B0_SW_P, iZ_E0_SW_P, iZ_B1, iZ_E1, uGE, uGF, U_R )
 
 #elif TWOMOMENT_ORDER_V
-
-      CALL ApplySlopeLimiter_TwoMoment &
-             ( iZ_B0_SW_P, iZ_E0_SW_P, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
 
       CALL ApplyPositivityLimiter_TwoMoment &
              ( iZ_B0_SW_P, iZ_E0_SW_P, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
@@ -329,15 +329,15 @@ CONTAINS
 
     ! --- Apply Limiter ---
 
+    CALL ApplySlopeLimiter_TwoMoment &
+           ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
+
 #ifdef TWOMOMENT_ORDER_1
 
     CALL ApplyPositivityLimiter_TwoMoment &
            ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_R )
 
 #elif TWOMOMENT_ORDER_V
-
-    CALL ApplySlopeLimiter_TwoMoment &
-           ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
 
     CALL ApplyPositivityLimiter_TwoMoment &
            ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
@@ -418,13 +418,13 @@ CONTAINS
 
     ! --- Apply Positivity Limiter ---
 
+    CALL ApplySlopeLimiter_TwoMoment &
+           ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
+
 #ifdef TWOMOMENT_ORDER_1
     CALL ApplyPositivityLimiter_TwoMoment &
            ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_R )
 #elif TWOMOMENT_ORDER_V
-    CALL ApplySlopeLimiter_TwoMoment &
-           ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
-
     CALL ApplyPositivityLimiter_TwoMoment &
            ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
 #endif
@@ -512,12 +512,12 @@ CONTAINS
 
       ! --- Apply Limiter ---
 
+      CALL ApplySlopeLimiter_TwoMoment &
+             ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
 #ifdef TWOMOMENT_ORDER_1
       CALL ApplyPositivityLimiter_TwoMoment &
              ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_R )
 #elif TWOMOMENT_ORDER_V
-      CALL ApplySlopeLimiter_TwoMoment &
-             ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
       CALL ApplyPositivityLimiter_TwoMoment &
              ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
 #endif
@@ -594,16 +594,45 @@ CONTAINS
              ( iZ_B0_SW, iZ_E0_SW, One, Half * dt, U_R, Q1_R, U_R )
 
       ! --- Apply Limiter ---
+      CALL ApplySlopeLimiter_TwoMoment &
+             ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
 #ifdef TWOMOMENT_ORDER_1
       CALL ApplyPositivityLimiter_TwoMoment &
              ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_R )
 #elif TWOMOMENT_ORDER_V
-      CALL ApplySlopeLimiter_TwoMoment &
-             ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
       CALL ApplyPositivityLimiter_TwoMoment &
              ( iZ_B0_SW, iZ_E0_SW, iZ_B1, iZ_E1, uGE, uGF, U_F, U_R )
 #endif
 
+    END IF
+
+    IF( MAXVAL( U_R ) >= 1.0e0 ) THEN
+      WRITE(*,'(A,ES15.5)') 'MAXVAL(U_R)-1.0d0 =',  MAXVAL( U_R ) - 1.0e0
+      WRITE(*,'(A12,7A5)') '', &
+                          'nDoF','iE','iX1','iX2','iX3','iCR','iS'
+      WRITE(*,'(A12,7I5)') 'MAXLOC(U_R)', MAXLOC( U_R )
+
+      WRITE(*,'(A,6A6)') 'Draw back @', &
+                          'iNode','iZ1','iZ2','iZ3','iZ4','iS'
+      DO iS = 1, nSpecies
+          DO iZ4 = iZ_B1(4), iZ_E1(4)
+            DO iZ3 = iZ_B1(3), iZ_E1(3)
+              DO iZ2 = iZ_B1(2), iZ_E1(2)
+                DO iZ1 = iZ_B1(1), iZ_E1(1)
+                  DO iNode = 1, nDOF
+                    IF( U_R(iNode,iZ1,iZ2,iZ3,iZ4,1,iS) > 1.0_DP ) THEN
+                      WRITE(*,'(A,6I6)') 'Draw back @', &
+                      iNode,iZ1,iZ2,iZ3,iZ4,iS
+                      U_R(iNode,iZ1,iZ2,iZ3,iZ4,1,iS) = 1.0e0 - 1.0d-100
+                      U_R(iNode,iZ1,iZ2,iZ3,iZ4,2,iS) = 1.0d-100
+                    END IF
+                  END DO
+                END DO
+              END DO
+            END DO
+          END DO
+      END DO
+      STOP
     END IF
 
 #ifdef THORNADO_DEBUG_IMEX
@@ -652,51 +681,51 @@ CONTAINS
 
     INTEGER :: iNodeX, iX1, iX2, iX3, iFF
 
-    CALL TimersStart( Timer_AddFieldsF )
-
-#if defined(THORNADO_OMP_OL)
-    !$OMP TARGET ENTER DATA &
-    !$OMP MAP( to: A, B, C, iX_B, iX_E )
-#elif defined(THORNADO_OACC)
-    !$ACC ENTER DATA &
-    !$ACC COPYIN( A, B, C, iX_B, iX_E )
-#endif
-
-#if defined(THORNADO_OMP_OL)
-    !$OMP TARGET TEAMS DISTRIBUTE PARALLEL DO SIMD COLLAPSE(5)
-#elif defined(THORNADO_OACC)
-    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(5) &
-    !$ACC PRESENT( A, B, C, iX_B, iX_E )
-#elif defined(THORNADO_OMP)
-    !$OMP PARALLEL DO SIMD COLLAPSE(5)
-#endif
-    DO iFF = 1, nCF
-    DO iX3 = iX_B(3), iX_E(3)
-    DO iX2 = iX_B(2), iX_E(2)
-    DO iX1 = iX_B(1), iX_E(1)
-    DO iNodeX = 1, nDOFX
-
-      C(iNodeX,iX1,iX2,iX3,iFF) &
-        = alpha * A(iNodeX,iX1,iX2,iX3,iFF) &
-            + beta * B(iNodeX,iX1,iX2,iX3,iFF)
-
-    END DO
-    END DO
-    END DO
-    END DO
-    END DO
-
-#if defined(THORNADO_OMP_OL)
-    !$OMP TARGET EXIT DATA &
-    !$OMP MAP( from: A, B, C ) &
-    !$OMP MAP( release: iX_B, iX_E )
-#elif defined(THORNADO_OACC)
-    !$ACC EXIT DATA &
-    !$ACC COPYOUT( A, B, C ) &
-    !$ACC DELETE( iX_B, iX_E )
-#endif
-
-    CALL TimersStop( Timer_AddFieldsF )
+!!$    CALL TimersStart( Timer_AddFieldsF )
+!!$
+!!$#if defined(THORNADO_OMP_OL)
+!!$    !$OMP TARGET ENTER DATA &
+!!$    !$OMP MAP( to: A, B, C, iX_B, iX_E )
+!!$#elif defined(THORNADO_OACC)
+!!$    !$ACC ENTER DATA &
+!!$    !$ACC COPYIN( A, B, C, iX_B, iX_E )
+!!$#endif
+!!$
+!!$#if defined(THORNADO_OMP_OL)
+!!$    !$OMP TARGET TEAMS DISTRIBUTE PARALLEL DO SIMD COLLAPSE(5)
+!!$#elif defined(THORNADO_OACC)
+!!$    !$ACC PARALLEL LOOP GANG VECTOR COLLAPSE(5) &
+!!$    !$ACC PRESENT( A, B, C, iX_B, iX_E )
+!!$#elif defined(THORNADO_OMP)
+!!$    !$OMP PARALLEL DO SIMD COLLAPSE(5)
+!!$#endif
+!!$    DO iFF = 1, nCF
+!!$    DO iX3 = iX_B(3), iX_E(3)
+!!$    DO iX2 = iX_B(2), iX_E(2)
+!!$    DO iX1 = iX_B(1), iX_E(1)
+!!$    DO iNodeX = 1, nDOFX
+!!$
+!!$      C(iNodeX,iX1,iX2,iX3,iFF) &
+!!$        = alpha * A(iNodeX,iX1,iX2,iX3,iFF) &
+!!$            + beta * B(iNodeX,iX1,iX2,iX3,iFF)
+!!$
+!!$    END DO
+!!$    END DO
+!!$    END DO
+!!$    END DO
+!!$    END DO
+!!$
+!!$#if defined(THORNADO_OMP_OL)
+!!$    !$OMP TARGET EXIT DATA &
+!!$    !$OMP MAP( from: A, B, C ) &
+!!$    !$OMP MAP( release: iX_B, iX_E )
+!!$#elif defined(THORNADO_OACC)
+!!$    !$ACC EXIT DATA &
+!!$    !$ACC COPYOUT( A, B, C ) &
+!!$    !$ACC DELETE( iX_B, iX_E )
+!!$#endif
+!!$
+!!$    CALL TimersStop( Timer_AddFieldsF )
 
   END SUBROUTINE AddFields_Fluid
 

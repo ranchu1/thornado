@@ -119,12 +119,12 @@ PROGRAM HomogeneousSphere1D
 
   nE = 10
   eL = 1.0d0 * MeV
-  eR = 1.5d2 * MeV
+  eR = 1.0d2 * MeV
   ZoomE = 1.4_DP
 
   t       = 0.0_DP
   t_end   = 1.0d0 * Millisecond
-  dt_wrt  = 1.0d-1 * Millisecond
+  dt_wrt  = 2.0d-2 * Millisecond
   iCycleD = 1
   iCycleT = 10
 
@@ -220,7 +220,7 @@ PROGRAM HomogeneousSphere1D
           ( BetaTVD_Option = 1.5_DP,                    &
             BetaTVB_Option = 0.d0,                      &
             SlopeTolerance_Option = 1.0d-6,             &
-            UseSlopeLimiter_Option = .TRUE.,           &
+            UseSlopeLimiter_Option = .FALSE.,           &
             Verbose_Option = .TRUE. )
 
   ! --- Initialize Positivity Limiter ---
@@ -234,7 +234,7 @@ PROGRAM HomogeneousSphere1D
 
   ! --- Set Initial Condition ---
 
-  CALL InitializeFields_HomogeneousSphere( '06' )
+  CALL InitializeFields_HomogeneousSphere( ' B' )
 
   ! --- Write Initial Condition Before Limiter ---
 

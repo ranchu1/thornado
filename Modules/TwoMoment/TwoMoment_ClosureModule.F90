@@ -5,9 +5,7 @@ MODULE TwoMoment_ClosureModule
     Zero, One, Two, Three, Four, &
     Fifth, Third
 
-#ifdef MOMENT_CLOSURE_NN_BRONSON
   USE TwoMoment_NNClosureModule
-#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -168,7 +166,7 @@ CONTAINS
        WRITE(*,'(A6,A)') '','Loading Neural Neterwork ...'
 
        CALL InitializeNNClosure &
-         ( 'Bronson_5inputs_20.h5' )
+         ( 'Model3_Overall_3.h5' )
 
      END IF
 
@@ -339,9 +337,10 @@ CONTAINS
     REAL(DP) :: EddingtonFactor
 
     REAL(DP) :: Ratio, Bryup, Brydown
-
+    REAL(DP) :: EddingtonFactor_CB
 #ifdef MOMENT_CLOSURE_NN_BRONSON
     REAL(DP) :: input(input_n)
+    REAL(DP) :: output(output_n)
 #endif
 
 #ifdef MOMENT_CLOSURE_MINERBO
@@ -399,23 +398,42 @@ CONTAINS
 
 #elif MOMENT_CLOSURE_NN_BRONSON
 
+    !input(1) = D
+    !input(2) = FF
+    !! CB closure
+    !input(3) = Third + Two * Third * ( One - D ) * ( One - Two * D ) &
+    !           * ClosurePolynomial_ME_CB( FF / MAX( One - D, SqrtTiny ) )
+    !! Max Packing ( Minimum )
+    !input(4) = Third * ( One + 4.0_DP * FF * FF - Two * FF )
+    !! Fit ( Maximum )
+    !input(5) = Third + FF / 15.0_DP + 3.0_DP * FF * FF / 16.0_DP &
+    !           + Two * FF * FF * FF / 15.0_DP
+
+    !call nnclosure(input, EddingtonFactor)
+
+    EddingtonFactor_CB &
+      = Third + Two * Third * ( One - D ) * ( One - Two * D ) &
+          * ClosurePolynomial_ME_CB( FF / MAX( One - D, SqrtTiny ) )
+
     input(1) = D
-    input(2) = FF
-    ! CB closure
-    input(3) = Third + Two * Third * ( One - D ) * ( One - Two * D ) &
-               * ClosurePolynomial_ME_CB( FF / MAX( One - D, SqrtTiny ) )
-    ! Max Packing ( Minimum )
-    input(4) = Third * ( One + 4.0_DP * FF * FF - Two * FF )
-    ! Fit ( Maximum )
-    input(5) = Third + FF / 15.0_DP + 3.0_DP * FF * FF / 16.0_DP &
-               + Two * FF * FF * FF / 15.0_DP
+    input(2) = D*0.999
+    input(3) = FF
+    input(4) = FF*0.999
 
-    call nnclosure(input, EddingtonFactor)
+    CALL nnclosure(input, output)
+    EddingtonFactor = output(1)
 
+    IF( abs(EddingtonFactor-EddingtonFactor_CB) > abs(EddingtonFactor_CB) )THEN
+      WRITE(*,'(A,4ES12.3)') 'EddingtonFactor', &
+        D, FF, EddingtonFactor, EddingtonFactor_CB
+      !STOP
+    END IF
+    STOP 'EddingtonFactor_Scalar'
 #endif
 
     RETURN
   END FUNCTION EddingtonFactor_Scalar
+
 
   FUNCTION EddingtonFactor_Vector( D, FF ) &
       RESULT( EddingtonFactor )
@@ -429,10 +447,6 @@ CONTAINS
     REAL(DP) :: EddingtonFactor(SIZE(D))
 
     INTEGER  :: i
-
-#ifdef MOMENT_CLOSURE_NN_BRONSON
-    REAL(DP) :: input(input_n)
-#endif
 
 #ifdef MOMENT_CLOSURE_MINERBO
 
@@ -474,20 +488,54 @@ CONTAINS
 
 #elif MOMENT_CLOSURE_NN_BRONSON
 
-    STOP 'Not Finished MOMENT_CLOSURE_NN_BRONSON in EddingtonFactor_Vector'
-    DO i = 1, size(D)
-      input(1) = One
-      input(2) = D(i)
-      input(3) = FF(i)
-      input(4) = FF(i)*FF(i)
-      input(5) = One / ( One - D(i) ) !tan( Pi*0.45*( One - D/(One-abs(FF))))
-      call nnclosure(input, EddingtonFactor(i))
-    END DO
+    EddingtonFactor = EddingtonFactor_Vector_NN( D, FF )
 
 #endif
 
     RETURN
   END FUNCTION EddingtonFactor_Vector
+
+
+  FUNCTION EddingtonFactor_Vector_NN( D, FF ) &
+      RESULT( EddingtonFactor )
+#if defined(THORNADO_OMP_OL)
+    !$OMP DECLARE TARGET
+#elif defined(THORNADO_OACC)
+    !$ACC ROUTINE SEQ
+#endif
+
+    REAL(DP), INTENT(in) :: D(:), FF(:)
+    REAL(DP) :: EddingtonFactor(SIZE(D))
+
+    REAL(DP) :: EddingtonFactor_CB(SIZE(D))
+
+    REAL(DP) :: input(input_n)
+    REAL(DP) :: output(output_n)
+    INTEGER  :: i
+
+    DO i = 1, size(D) - 1
+      input(1) = D(i)
+      input(2) = D(i+1)
+      input(3) = FF(i)
+      input(4) = FF(i+1)
+      call nnclosure(input, output)
+      EddingtonFactor(i) = output(1)
+    END DO
+    EddingtonFactor(size(D)) = output(2)
+
+    !!$! debugging ------
+    !!$EddingtonFactor_CB &
+    !!$  = Third + Two * Third * ( One - D ) * ( One - Two * D ) &
+    !!$      * ClosurePolynomial_ME_CB( FF / MAX( One - D, SqrtTiny ) )
+
+    !!$WRITE(*,'(4A12)') 'D','FF','EF','EF_CB'
+    !!$DO i = 1, size(D)
+    !!$  WRITE(*,'(4ES12.3)') D(i), FF(i), EddingtonFactor(i), EddingtonFactor_CB(i)
+    !!$END DO
+    !!$! ---------
+
+    RETURN
+  END FUNCTION EddingtonFactor_Vector_NN
 
 
   ! --- Heat Flux Factor ---
