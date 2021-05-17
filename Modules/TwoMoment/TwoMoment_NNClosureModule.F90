@@ -5,11 +5,12 @@ MODULE TwoMoment_NNClosureModule
 
   implicit none
 
-  INTEGER, PARAMETER  :: input_n = 5
-  INTEGER, PARAMETER  :: hid1 = 30
+  INTEGER, PARAMETER  :: input_n = 4
+  INTEGER, PARAMETER  :: hid1 = 50
   INTEGER, PARAMETER  :: hid2 = 20
   INTEGER, PARAMETER  :: hid3 = 10
-  INTEGER, PARAMETER  :: hid4 = 1
+  INTEGER, PARAMETER  :: hid4 = 2
+  INTEGER, PARAMETER  :: output_n = 2
 
   INTEGER             :: hdferr
   INTEGER(HID_T)      :: file_id
@@ -38,13 +39,13 @@ MODULE TwoMoment_NNClosureModule
   subroutine nnclosure( inputs, k_NN )
 
     real(dp), intent(in)  :: inputs(input_n)
-    real(dp), intent(out) :: k_NN
+    real(dp), intent(out) :: k_NN(output_n)
 
     neuron0 = forward( input_n, hid1, inputs,  weights0, bias0, 'tanh' )
     neuron1 = forward( hid1,    hid2, neuron0, weights1, bias1, 'tanh' )
     neuron2 = forward( hid2,    hid3, neuron1, weights2, bias2, 'tanh' )
     neuron3 = forward( hid3,    hid4, neuron2, weights3, bias3, 'sigmoid' )
-    k_NN = neuron3(1)
+    k_NN = neuron3
 
   end subroutine
 

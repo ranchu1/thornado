@@ -121,7 +121,7 @@ CONTAINS
                 InnerT = 21.0_DP * MeV
                 InnerY = 0.25_DP
 
-              CASE ( '02' )
+              CASE ( ' A' )
 
                 InnerD = 1.0d13 * Gram / Centimeter**3
                 InnerT = 16.0_DP * MeV
@@ -133,7 +133,7 @@ CONTAINS
                 InnerT = 8.0_DP * MeV
                 InnerY = 0.12_DP
 
-              CASE ( '04' )
+              CASE ( ' C' )
 
                 InnerD = 1.0d11 * Gram / Centimeter**3
                 InnerT = 8.0_DP * MeV
@@ -145,7 +145,7 @@ CONTAINS
                 InnerT = 3.0_DP * MeV
                 InnerY = 0.26_DP
 
-              CASE ( '06' )
+              CASE ( ' B' )
 
                 InnerD = 3.0d11 * Gram / Centimeter**3
                 InnerT = 4.0_DP * MeV

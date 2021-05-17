@@ -21,6 +21,8 @@ VPATH += $(THORNADO_DIR)/SandBox/HomogeneousSphere
 VPATH += $(THORNADO_DIR)/SandBox/Interface_FLASH
 VPATH += $(THORNADO_DIR)/SandBox/TwoMoment_OrderV
 
+include $(THORNADO_DIR)/SandBox/TwoMoment_OrderV/Makefile_Object
+
 #DEFINES += $(PP)-DTHORNADO_DEBUG
 
 .DEFAULT_GOAL := all
@@ -123,6 +125,7 @@ HomogeneousSphere1D.o: \
   InputOutputModuleHDF.o \
   Euler_UtilitiesModule.o \
   TwoMoment_ClosureModule.o \
+  TwoMoment_TimersModule_OrderV.o \
   TwoMoment_SlopeLimiterModule_OrderV.o \
   TwoMoment_PositivityLimiterModule.o \
   HomogeneousSphere1D.F90
@@ -157,4 +160,3 @@ TimeSteppingModule_Flash.o: \
   GeometryFieldsModuleE.o \
   GeometryFieldsModule.o \
   TimeSteppingModule_Flash.F90
-
